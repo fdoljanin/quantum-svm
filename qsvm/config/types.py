@@ -129,10 +129,8 @@ class ExperimentResult:
     kernel_train: Optional[np.ndarray] = None  # Optional: save kernel matrix
 
     def to_dict(self) -> dict:
-        """Convert to JSON-serializable dict."""
+        """Convert to JSON-serializable dict (excludes predictions and kernel data)."""
         return {
             'config': self.config.to_dict(),
             'metrics': self.metrics.to_dict(),
-            'predictions': self.predictions.tolist(),
-            'kernel_shape': self.kernel_train.shape if self.kernel_train is not None else None,
         }

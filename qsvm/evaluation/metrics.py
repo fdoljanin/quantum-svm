@@ -35,8 +35,6 @@ def evaluate_predictions(y_true: np.ndarray, y_pred: np.ndarray) -> MetricsResul
 def save_results(
     result: ExperimentResult,
     output_path: Union[str, Path],
-    include_predictions: bool = True,
-    include_kernel: bool = False,
 ) -> None:
     """
     Save experiment results to JSON file.
@@ -44,20 +42,12 @@ def save_results(
     Args:
         result: ExperimentResult to save
         output_path: Path to output JSON file
-        include_predictions: Whether to include prediction array
-        include_kernel: Whether to include kernel matrix (can be large)
     """
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Convert to dict
     result_dict = result.to_dict()
-
-    # Optionally remove large arrays
-    if not include_predictions:
-        result_dict.pop('predictions', None)
-    if not include_kernel:
-        result_dict.pop('kernel_shape', None)
 
     # Add metadata
     result_dict['timestamp'] = datetime.now().isoformat()

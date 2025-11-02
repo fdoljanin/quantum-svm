@@ -1,6 +1,3 @@
-# Data
-raw/
-
 # Thoughts folder
 thoughts/
 
@@ -59,7 +56,6 @@ logs/
 # Data files (keep compressed original)
 *.csv
 *.csv.gz
-!qsvm/raw/SUSY.csv.gz
 
 # Plots and figures
 *.png

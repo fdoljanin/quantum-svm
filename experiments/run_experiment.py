@@ -87,7 +87,7 @@ def run_experiment(config_module: str, output_dir: str = "results"):
     )
 
     output_path = Path(output_dir) / output_filename
-    save_results(result, output_path, include_predictions=False, include_kernel=False)
+    save_results(result, output_path)
     print(f"\nResults saved to: {output_path}")
 
 
