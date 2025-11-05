@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Quick test to verify QSVM installation and basic functionality."""
 
 from qsvm import QSVM
@@ -6,13 +5,12 @@ from qsvm.config import default_statevector_config
 from qsvm.data import DataPipeline
 from dataclasses import replace
 
-# Create a small test config (reduced data for quick test)
 test_config = replace(
     default_statevector_config,
     name="quick_test",
     data=replace(
         default_statevector_config.data,
-        train_size=500,  # Small size for quick test
+        train_size=500,
         test_size=500,
         scale_factor=0.5
     )

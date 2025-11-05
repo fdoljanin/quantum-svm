@@ -30,7 +30,6 @@ class QSVM:
         """
         self.config = config
 
-        # Create quantum kernel based on strategy
         if config.kernel.strategy == "shot_based":
             self.kernel = ShotBasedKernel.from_configs(
                 config.feature_map,
@@ -44,7 +43,6 @@ class QSVM:
         else:
             raise ValueError(f"Unknown kernel strategy: {config.kernel.strategy}")
 
-        # SVM components (set during training)
         self.x_train: Optional[np.ndarray] = None
         self.y_train: Optional[np.ndarray] = None
         self.kernel_matrix_train: Optional[np.ndarray] = None
@@ -67,9 +65,7 @@ class QSVM:
         """
         self.x_train = np.asarray(x_train, float)
 
-        # Exploit symmetry for training kernel
         if hasattr(self.kernel, 'compute_kernel'):
-            # Shot-based kernel supports symmetric optimization
             if isinstance(self.kernel, ShotBasedKernel):
                 self.kernel_matrix_train = self.kernel.compute_kernel(
                     self.x_train,
@@ -96,11 +92,9 @@ class QSVM:
         """
         self.y_train = np.asarray(y_train)
 
-        # Compute kernel matrix if not already computed
         if self.kernel_matrix_train is None or self.x_train is not x_train:
             self.compute_train_kernel(x_train)
 
-        # Create and train SVM
         self.svm_model = svm.SVC(
             kernel=self.config.svm.kernel,
             C=self.config.svm.C,
@@ -122,10 +116,8 @@ class QSVM:
 
         x_test = np.asarray(x_test, float)
 
-        # Compute test kernel: K(test, train)
         kernel_matrix_test = self.kernel.compute_kernel(x_test, self.x_train)
 
-        # Predict using SVM
         predictions = self.svm_model.predict(kernel_matrix_test)
 
         return predictions
@@ -171,13 +163,10 @@ class QSVM:
         """
         from qsvm.evaluation import evaluate_predictions
 
-        # Train and predict
         predictions = self.fit_predict(x_train, y_train, x_test)
 
-        # Evaluate
         metrics = evaluate_predictions(y_test, predictions)
 
-        # Create result object
         result = ExperimentResult(
             config=self.config,
             metrics=metrics,

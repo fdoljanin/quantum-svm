@@ -31,7 +31,6 @@ class StatevectorKernel(QuantumKernel):
         self.feature_map = create_feature_map(feature_map_config)
         self.d = self.feature_map.num_qubits
 
-        # Cache for computed statevectors
         self.cache: Dict[tuple, np.ndarray] = {}
 
     @classmethod
@@ -70,13 +69,11 @@ class StatevectorKernel(QuantumKernel):
 
         for row in iterator:
             if self.kernel_config.cache_statevectors:
-                # Use cache
                 key = tuple(row)
                 if key not in self.cache:
                     self.cache[key] = self._compute_statevector(row)
                 out_cols.append(self.cache[key])
             else:
-                # No caching
                 out_cols.append(self._compute_statevector(row))
 
         return np.column_stack(out_cols)
@@ -95,7 +92,6 @@ class StatevectorKernel(QuantumKernel):
         psi_x = self._compute_statevector(x)
         psi_y = self._compute_statevector(y)
 
-        # Kernel = |⟨ψ_y|ψ_x⟩|²
         inner_product = np.dot(psi_y.conj(), psi_x)
         return float(np.abs(inner_product) ** 2)
 
@@ -113,14 +109,11 @@ class StatevectorKernel(QuantumKernel):
         A = np.asarray(A, float)
         B = np.asarray(B, float)
 
-        # Compute statevector matrices
-        PsiA = self._resolve_statevectors(A)  # (2**d, n_samples_a)
-        PsiB = self._resolve_statevectors(B)  # (2**d, n_samples_b)
+        PsiA = self._resolve_statevectors(A)
+        PsiB = self._resolve_statevectors(B)
 
-        # Gram matrix: G[i,j] = ⟨ψ_A[i]|ψ_B[j]⟩
-        G = PsiA.conj().T @ PsiB  # (n_samples_a, n_samples_b)
+        G = PsiA.conj().T @ PsiB
 
-        # Kernel matrix: K[i,j] = |G[i,j]|²
         K = np.abs(G) ** 2
 
         return K

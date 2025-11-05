@@ -42,14 +42,12 @@ class DataPipeline:
         Returns:
             Tuple of (features_df, target_array)
         """
-        # Load CSV
         self.data_raw = pd.read_csv(
             self.config.data_path,
             nrows=self.config.nrows,
             header=None,
         )
 
-        # Drop missing values
         cols_to_check = [self.config.target_column] + list(self.config.feature_columns)
         self.data_raw = self.data_raw.dropna(subset=cols_to_check)
 
@@ -65,14 +63,11 @@ class DataPipeline:
         if self.data_raw is None:
             self.load_data()
 
-        # Extract and scale features
         features_raw = self.data_raw[list(self.config.feature_columns)]
         self.data_features = self.scaler.fit_transform(features_raw)
 
-        # Apply additional scaling factor
         self.data_features = self.data_features * self.config.scale_factor
 
-        # Extract target
         self.data_target = self.data_raw[self.config.target_column].to_numpy()
 
         return self.data_features, self.data_target
@@ -87,11 +82,9 @@ class DataPipeline:
         if self.data_features is None or self.data_target is None:
             self.preprocess()
 
-        # Train: first N samples
         x_train = self.data_features[:self.config.train_size]
         y_train = self.data_target[:self.config.train_size]
 
-        # Test: last N samples
         x_test = self.data_features[-self.config.test_size:]
         y_test = self.data_target[-self.config.test_size:]
 

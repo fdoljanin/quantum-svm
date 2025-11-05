@@ -8,7 +8,7 @@ class FeatureMapConfig:
     type: Literal["z", "zz", "pauli"]
     feature_dimension: int
     reps: int
-    paulis: Optional[list[str]] = None  # Only for pauli type
+    paulis: Optional[list[str]] = None
 
     def to_dict(self) -> dict:
         return {
@@ -23,13 +23,11 @@ class KernelConfig:
     """Configuration for quantum kernel computation strategy."""
     strategy: Literal["shot_based", "statevector"]
 
-    # Shot-based specific
     shots: Optional[int] = 2048
     optimization_level: Optional[int] = 1
     workers: Optional[int] = 20
     show_progress: Optional[bool] = False
 
-    # Statevector specific (none currently, but reserved for future)
     cache_statevectors: Optional[bool] = True
 
     def to_dict(self) -> dict:
@@ -50,11 +48,9 @@ class DataConfig:
     feature_columns: Tuple[int, ...] = (1, 2, 3, 4, 5, 6, 7, 8)
     target_column: int = 0
 
-    # Preprocessing
     scale_range: Tuple[float, float] = (-np.pi / 4, np.pi / 4)
-    scale_factor: float = 1.0  # Additional multiplicative scaling (e.g., 2**-1)
+    scale_factor: float = 1.0
 
-    # Splitting
     train_size: int = 800
     test_size: int = 1000
 
@@ -90,7 +86,6 @@ class ExperimentConfig:
     data: DataConfig
     svm: SVMConfig = field(default_factory=lambda: SVMConfig())
 
-    # Metadata
     name: Optional[str] = None
     description: Optional[str] = None
 
@@ -126,7 +121,7 @@ class ExperimentResult:
     config: ExperimentConfig
     metrics: MetricsResult
     predictions: np.ndarray
-    kernel_train: Optional[np.ndarray] = None  # Optional: save kernel matrix
+    kernel_train: Optional[np.ndarray] = None
 
     def to_dict(self) -> dict:
         """Convert to JSON-serializable dict (excludes predictions and kernel data)."""

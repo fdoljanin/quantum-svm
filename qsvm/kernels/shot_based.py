@@ -11,7 +11,6 @@ from .base import QuantumKernel
 from qsvm.config.types import KernelConfig
 from qsvm.feature_maps import create_feature_map
 
-# Set environment variables to control threading
 for _env in ["OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"]:
     os.environ.setdefault(_env, "1")
 
@@ -47,7 +46,6 @@ def _compute_row_worker(
     Returns:
         Tuple of (row_index, list of (col_index, kernel_value) pairs)
     """
-    # Create simulator with single-threaded execution
     sim = AerSimulator()
     sim.set_options(
         max_parallel_threads=1,
@@ -55,11 +53,9 @@ def _compute_row_worker(
         max_parallel_shots=1,
     )
 
-    # Create parameterized circuit
     x_params = ParameterVector("x", d)
     y_params = ParameterVector("y", d)
 
-    # Build overlap circuit: Φ(y)† Φ(x) |0⟩
     from qsvm.feature_maps import create_feature_map
     from qsvm.config.types import FeatureMapConfig
     fm_config = FeatureMapConfig(**feature_map_config)
@@ -70,10 +66,8 @@ def _compute_row_worker(
     qc.compose(fm.assign_parameters(x_params).inverse(), range(d), inplace=True)
     qc.measure(range(d), range(d))
 
-    # Transpile once for this circuit structure
     tbase = transpile(qc, sim, optimization_level=optimization_level)
 
-    # Compute kernel values
     j0 = i if symmetric else 0
     out: List[Tuple[int, float]] = []
     zeros = "0" * d
@@ -81,15 +75,12 @@ def _compute_row_worker(
     for j in range(j0, len(B)):
         b_vec = B[j]
 
-        # Bind parameters
         bind_map = {**dict(zip(x_params, a_vec)), **dict(zip(y_params, b_vec))}
         bound = tbase.assign_parameters(bind_map)
 
-        # Execute circuit
         res = sim.run(bound, shots=shots).result()
         counts = res.get_counts()
 
-        # Kernel value = probability of measuring all zeros
         prob_zeros = counts.get(zeros, 0) / shots
         out.append((j, prob_zeros))
 
@@ -120,7 +111,6 @@ class ShotBasedKernel(QuantumKernel):
         self.feature_map = create_feature_map(feature_map_config)
         self.d = self.feature_map.num_qubits
 
-        # Extract reps from feature map if available
         try:
             self.reps = int(getattr(self.feature_map, "reps", 2))
         except Exception:
@@ -142,7 +132,6 @@ class ShotBasedKernel(QuantumKernel):
         Returns:
             Kernel value K(x, y)
         """
-        # Use compute_kernel for single element (not efficient, but correct)
         K = self.compute_kernel(x.reshape(1, -1), y.reshape(1, -1))
         return float(K[0, 0])
 
@@ -167,10 +156,8 @@ class ShotBasedKernel(QuantumKernel):
 
         K = np.zeros((len(A), len(B)), dtype=float)
 
-        # Serialize feature map config for workers
         fm_config_dict = self.feature_map_config.to_dict()
 
-        # Parallel computation
         tasks = []
         with ProcessPoolExecutor(max_workers=self.kernel_config.workers) as ex:
             for i, a in enumerate(A):
@@ -189,7 +176,6 @@ class ShotBasedKernel(QuantumKernel):
                     )
                 )
 
-            # Collect results
             iterator = as_completed(tasks)
             if self.kernel_config.show_progress:
                 iterator = tqdm(iterator, total=len(tasks), desc="Computing kernel rows", leave=False)
@@ -197,12 +183,10 @@ class ShotBasedKernel(QuantumKernel):
             for fut in iterator:
                 i, pairs = fut.result()
                 if symmetric:
-                    # Fill both K[i,j] and K[j,i]
                     for j, v in pairs:
                         K[i, j] = v
                         K[j, i] = v
                 else:
-                    # Fill K[i,j] only
                     for j, v in pairs:
                         K[i, j] = v
 

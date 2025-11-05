@@ -13,7 +13,6 @@ from qsvm.config import (
     SVMConfig,
 )
 
-# Base configuration
 base_config = ExperimentConfig(
     name="shot_sweep",
     description="Shot count sweep: 1 to 4096 shots",
@@ -24,9 +23,9 @@ base_config = ExperimentConfig(
     ),
     kernel=KernelConfig(
         strategy="shot_based",
-        shots=2048,  # Will be overridden
+        shots=2048,
         optimization_level=1,
-        workers=72,  # Cluster configuration
+        workers=72,
         show_progress=False,
     ),
     data=DataConfig(
@@ -39,11 +38,9 @@ base_config = ExperimentConfig(
     svm=SVMConfig(C=1.0),
 )
 
-# For single experiment, use base config
 config = base_config
 output_filename = "shot_sweep_2048.json"
 
-# For batch experiments (used by batch runner):
 shot_counts = [1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
 
 def get_configs():
@@ -52,7 +49,6 @@ def get_configs():
 
     configs = []
     for shots in shot_counts:
-        # Create new config with updated shots
         kernel_config = replace(base_config.kernel, shots=shots)
         exp_config = replace(
             base_config,

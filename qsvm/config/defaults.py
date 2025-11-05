@@ -7,7 +7,6 @@ from .types import (
     SVMConfig,
 )
 
-# Default shot-based configuration matching original shots.py
 default_shot_based_config = ExperimentConfig(
     name="default_shot_based",
     description="Default shot-based quantum kernel configuration",
@@ -36,7 +35,6 @@ default_shot_based_config = ExperimentConfig(
     svm=SVMConfig(C=1.0),
 )
 
-# Default statevector configuration matching notebook experiments
 default_statevector_config = ExperimentConfig(
     name="default_statevector",
     description="Default statevector quantum kernel configuration",
@@ -56,12 +54,11 @@ default_statevector_config = ExperimentConfig(
         feature_columns=(1, 2, 3, 4, 5, 6, 7, 8),
         target_column=0,
         scale_range=(-np.pi / 2, np.pi / 2),
-        scale_factor=0.5,  # 2**-1
+        scale_factor=0.5,
         train_size=500,
         test_size=500,
     ),
     svm=SVMConfig(C=1.0),
 )
 
-# Configuration for shot count sweep experiment
 shot_sweep_base = default_shot_based_config

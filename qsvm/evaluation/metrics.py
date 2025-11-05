@@ -46,14 +46,11 @@ def save_results(
     output_path = Path(output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Convert to dict
     result_dict = result.to_dict()
 
-    # Add metadata
     result_dict['timestamp'] = datetime.now().isoformat()
     result_dict['qsvm_version'] = "2.0.0"
 
-    # Write JSON
     with open(output_path, 'w') as f:
         json.dump(result_dict, f, indent=2)
 

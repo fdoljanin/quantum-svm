@@ -14,7 +14,6 @@ from qsvm.config import (
     SVMConfig,
 )
 
-# Base configuration
 base_config = ExperimentConfig(
     name="scale_factor_sweep",
     description="Scale factor sweep: 2**0 to 2**-10 for Z feature map",
@@ -25,7 +24,7 @@ base_config = ExperimentConfig(
     ),
     kernel=KernelConfig(
         strategy="statevector",
-        workers=6,  # Cluster configuration
+        workers=6,
     ),
     data=DataConfig(
         data_path="raw/SUSY.csv.gz",
@@ -33,18 +32,15 @@ base_config = ExperimentConfig(
         train_size=500,
         test_size=500,
         scale_range=(-np.pi / 4, np.pi / 4),
-        scale_factor=1.0,  # Will be overridden
+        scale_factor=1.0,
     ),
     svm=SVMConfig(C=1.0),
 )
 
-# For single experiment, use base config
 config = base_config
 output_filename = "scale_factor_sweep_1.0.json"
 
-# For batch experiments (used by batch runner):
-# Generate scale factors from 2**0 to 2**-10
-scale_factor_exponents = list(range(0, -3, -1))  # [0, -1, -2, ..., -10]
+scale_factor_exponents = list(range(0, -3, -1))
 scale_factors = [2**exp for exp in scale_factor_exponents]
 
 def get_configs():
@@ -53,7 +49,6 @@ def get_configs():
 
     configs = []
     for sf in scale_factors:
-        # Create new config with updated scale_factor
         data_config = replace(base_config.data, scale_factor=sf)
         exp_config = replace(
             base_config,
