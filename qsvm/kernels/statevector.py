@@ -1,11 +1,45 @@
+import os
 import numpy as np
 from qiskit.quantum_info import Statevector
 from tqdm import tqdm
-from typing import Dict
+from typing import Dict, Tuple, Any
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 from .base import QuantumKernel
 from qsvm.config.types import KernelConfig
 from qsvm.feature_maps import create_feature_map
+
+for _env in ["OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"]:
+    os.environ.setdefault(_env, "1")
+
+
+def _compute_statevector_worker(
+    x: np.ndarray,
+    feature_map_config: dict,
+    is_custom_ansatz: bool,
+    custom_genome: Any = None,
+    feature_dimension: int = None
+) -> Tuple[tuple, np.ndarray]:
+    os.environ['OMP_NUM_THREADS'] = '1'
+    os.environ['MKL_NUM_THREADS'] = '1'
+    os.environ['OPENBLAS_NUM_THREADS'] = '1'
+    os.environ['NUMEXPR_NUM_THREADS'] = '1'
+
+    from qiskit.quantum_info import Statevector
+    from qsvm.feature_maps import create_feature_map
+    from qsvm.config.types import FeatureMapConfig
+
+    if is_custom_ansatz:
+        from qsvm.feature_maps import CustomAnsatz
+        feature_map = CustomAnsatz(custom_genome, feature_dimension)
+    else:
+        fm_config = FeatureMapConfig(**feature_map_config)
+        feature_map = create_feature_map(fm_config)
+
+    qc = feature_map.assign_parameters(x)
+    sv_data = Statevector.from_instruction(qc).data
+
+    return (tuple(x), sv_data)
 
 
 class StatevectorKernel(QuantumKernel):
@@ -24,12 +58,13 @@ class StatevectorKernel(QuantumKernel):
 
         Args:
             feature_map_config: FeatureMapConfig for quantum encoding
-            kernel_config: KernelConfig (cache_statevectors flag)
+            kernel_config: KernelConfig (cache_statevectors flag, workers)
         """
         self.feature_map_config = feature_map_config
         self.kernel_config = kernel_config
         self.feature_map = create_feature_map(feature_map_config)
         self.d = self.feature_map.num_qubits
+        self.workers = kernel_config.workers or 1
 
         self.cache: Dict[tuple, np.ndarray] = {}
 
@@ -53,7 +88,63 @@ class StatevectorKernel(QuantumKernel):
 
     def _resolve_statevectors(self, mat: np.ndarray) -> np.ndarray:
         """
-        Resolve statevectors for all data points, using cache if enabled.
+        Resolve statevectors for all data points using parallel workers.
+
+        Args:
+            mat: Data matrix (n_samples, n_features)
+
+        Returns:
+            Statevector matrix (2**n_qubits, n_samples)
+        """
+        if self.workers == 1 or len(mat) < 10:
+            return self._resolve_statevectors_sequential(mat)
+
+        out_dict = {}
+
+        from qsvm.feature_maps import CustomAnsatz
+        is_custom_ansatz = isinstance(self.feature_map, CustomAnsatz)
+
+        if is_custom_ansatz:
+            custom_genome = self.feature_map.genome
+            feature_dimension = self.feature_map.feature_dimension
+            feature_map_config = {}
+        else:
+            custom_genome = None
+            feature_dimension = None
+            feature_map_config = self.feature_map_config.to_dict()
+
+        with ProcessPoolExecutor(max_workers=self.workers) as ex:
+            tasks = []
+            for row in mat:
+                key = tuple(row)
+                if self.kernel_config.cache_statevectors and key in self.cache:
+                    out_dict[key] = self.cache[key]
+                else:
+                    tasks.append(ex.submit(
+                        _compute_statevector_worker,
+                        row,
+                        feature_map_config,
+                        is_custom_ansatz,
+                        custom_genome,
+                        feature_dimension
+                    ))
+
+            iterator = as_completed(tasks)
+            if self.kernel_config.show_progress:
+                iterator = tqdm(iterator, total=len(tasks), desc="Computing statevectors", leave=False)
+
+            for fut in iterator:
+                key, sv_data = fut.result()
+                out_dict[key] = sv_data
+                if self.kernel_config.cache_statevectors:
+                    self.cache[key] = sv_data
+
+        out_cols = [out_dict[tuple(row)] for row in mat]
+        return np.column_stack(out_cols)
+
+    def _resolve_statevectors_sequential(self, mat: np.ndarray) -> np.ndarray:
+        """
+        Sequential version of statevector resolution (original implementation).
 
         Args:
             mat: Data matrix (n_samples, n_features)
