@@ -9,7 +9,7 @@ from qsvm.config.types import DataConfig, KernelConfig
 from experiments.genetic import (
     GAConfig,
     GeneticAlgorithm,
-    evaluate_ansatz_fitness,
+    PicklableFitnessFunction,
 )
 
 
@@ -68,8 +68,8 @@ def main():
     parser.add_argument(
         '--workers',
         type=int,
-        default=72,
-        help='Number of parallel workers for kernel computation'
+        default=1,
+        help='Number of parallel workers for kernel computation (set to 1 to avoid nested parallelism)'
     )
 
     args = parser.parse_args()
@@ -110,6 +110,8 @@ def main():
     print(f"  Training: {x_train.shape}")
     print(f"  Test: {x_test.shape}")
 
+    # Note: workers should be 1 when parallelizing at population level
+    # to avoid nested parallelism (daemonic processes can't have children)
     kernel_config = KernelConfig(
         strategy="statevector",
         cache_statevectors=True,
@@ -123,15 +125,13 @@ def main():
         kernel=kernel_config
     )
 
-    def fitness_function(ansatz):
-        return evaluate_ansatz_fitness(
-            ansatz=ansatz,
-            config=exp_config,
-            x_train=x_train,
-            y_train=y_train,
-            x_test=x_test,
-            y_test=y_test
-        )
+    fitness_function = PicklableFitnessFunction(
+        config=exp_config,
+        x_train=x_train,
+        y_train=y_train,
+        x_test=x_test,
+        y_test=y_test
+    )
 
     ga_config = GAConfig(
         population_size=args.population,

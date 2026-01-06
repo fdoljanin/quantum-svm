@@ -28,7 +28,7 @@ class GAConfig:
     crossover_rate: float = 0.7
     tournament_size: int = 3
     elite_count: int = 2
-    early_stopping_generations: int = 10
+    early_stopping_generations: int = 1000
     feature_dimension: int = 8
     min_circuit_depth: int = 15
     max_circuit_depth: int = 150

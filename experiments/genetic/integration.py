@@ -69,3 +69,32 @@ def evaluate_ansatz_fitness(
     qsvm = create_qsvm_with_custom_ansatz(ansatz, config)
     result = qsvm.fit_evaluate(x_train, y_train, x_test, y_test)
     return result.metrics.accuracy
+
+
+class PicklableFitnessFunction:
+    """
+    Picklable wrapper for fitness function that can be used with multiprocessing.
+    """
+    def __init__(
+        self,
+        config: ExperimentConfig,
+        x_train: np.ndarray,
+        y_train: np.ndarray,
+        x_test: np.ndarray,
+        y_test: np.ndarray
+    ):
+        self.config = config
+        self.x_train = x_train
+        self.y_train = y_train
+        self.x_test = x_test
+        self.y_test = y_test
+
+    def __call__(self, ansatz: CustomAnsatz) -> float:
+        return evaluate_ansatz_fitness(
+            ansatz=ansatz,
+            config=self.config,
+            x_train=self.x_train,
+            y_train=self.y_train,
+            x_test=self.x_test,
+            y_test=self.y_test
+        )
